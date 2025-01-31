@@ -3,38 +3,21 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 
+	"github.com/morshedulmunna/gogenz-library"
 	config "github.com/morshedulmunna/pxomart-api/configs"
-	middleware "github.com/morshedulmunna/pxomart-api/middlewares"
 	"github.com/morshedulmunna/pxomart-api/routes"
 )
 
 var logger *log.Logger
 
 func init() {
-	// Create a 'logs' directory if it doesn't exist
-	err := os.MkdirAll("logs", os.ModePerm)
-	if err != nil {
-		log.Fatal("Error creating logs directory: ", err)
-	}
+	// Set up logging using the utility function
+	logger = gogenz.SetupLogging()
 
-	// Generate the log file name based on the current date
-	logFileName := "logs/" + time.Now().Format("2006-01-02") + ".log"
-
-	// Create/Open the log file in append mode
-	file, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal("Error opening log file: ", err)
-	}
-
-	// Set the logger to write to the log file and also output to the console
-	logger = log.New(file, "", log.LstdFlags)
-	log.SetOutput(file) // Log to the file by default
 }
 
 func main() {
@@ -56,7 +39,7 @@ func main() {
 	router := routes.SetupRoutes(config.DB)
 
 	// Wrap the router with the rate-limiting middleware
-	limitedRouter := middleware.RateLimitMiddleware(router)
+	limitedRouter := gogenz.RateLimitMiddleware(router)
 
 	// Start the server
 	logger.Println("Server is running on :8080")
