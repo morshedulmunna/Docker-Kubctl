@@ -3,12 +3,39 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+
 	config "github.com/morshedulmunna/pxomart-api/configs"
+	middleware "github.com/morshedulmunna/pxomart-api/middlewares"
 	"github.com/morshedulmunna/pxomart-api/routes"
 )
+
+var logger *log.Logger
+
+func init() {
+	// Create a 'logs' directory if it doesn't exist
+	err := os.MkdirAll("logs", os.ModePerm)
+	if err != nil {
+		log.Fatal("Error creating logs directory: ", err)
+	}
+
+	// Generate the log file name based on the current date
+	logFileName := "logs/" + time.Now().Format("2006-01-02") + ".log"
+
+	// Create/Open the log file in append mode
+	file, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal("Error opening log file: ", err)
+	}
+
+	// Set the logger to write to the log file and also output to the console
+	logger = log.New(file, "", log.LstdFlags)
+	log.SetOutput(file) // Log to the file by default
+}
 
 func main() {
 	// Load environment variables
@@ -25,12 +52,15 @@ func main() {
 		log.Fatal("Database connection is nil")
 	}
 
-	// Set up routes with the database connection
+	// Set up routes
 	router := routes.SetupRoutes(config.DB)
 
+	// Wrap the router with the rate-limiting middleware
+	limitedRouter := middleware.RateLimitMiddleware(router)
+
 	// Start the server
-	log.Println("Server is running on :8080")
-	err = http.ListenAndServe(":8080", router)
+	logger.Println("Server is running on :8080")
+	err = http.ListenAndServe(":8080", limitedRouter)
 	if err != nil {
 		log.Fatal("Error starting server: ", err)
 	}

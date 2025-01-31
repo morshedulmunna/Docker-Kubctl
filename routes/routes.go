@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	gogenz "github.com/morshedulmunna/gogenz-library/response"
+	middleware "github.com/morshedulmunna/pxomart-api/middlewares"
 )
 
 func SetupRoutes(db *sql.DB) *mux.Router {
@@ -21,5 +22,6 @@ func SetupRoutes(db *sql.DB) *mux.Router {
 
 	// router.HandleFunc("/register", uc.RegisterHandler).Methods("POST")
 
+	router.Use(middleware.LoggingMiddleware)
 	return router
 }
