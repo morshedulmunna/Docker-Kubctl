@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -36,13 +37,13 @@ func main() {
 	}
 
 	// Set up routes
-	router := routes.SetupRoutes(config.DB)
+	router := routes.SetupRoutes()
 
 	// Wrap the router with the rate-limiting middleware
 	limitedRouter := gogenz.RateLimitMiddleware(router)
 
 	// Start the server
-	logger.Println("Server is running on :8080")
+	fmt.Println("Server is running on :8080")
 	err = http.ListenAndServe(":8080", limitedRouter)
 	if err != nil {
 		log.Fatal("Error starting server: ", err)
