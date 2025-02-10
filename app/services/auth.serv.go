@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"os"
@@ -28,14 +29,16 @@ func NewAuthService(authRepo repositories.AuthRepository) AuthService {
 
 // Login authenticates the user and generates a JWT token
 func (s *AuthServiceImpl) Login(email, password string) (string, error) {
+
 	user, err := s.authRepo.GetUserByEmail(email)
+	fmt.Println(user)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
 
 	// Validate password
 	if !utils.ComparePassword(user.Password, password) {
-		return "", errors.New("invalid credentials")
+		return "", errors.New("invalid credentials! password: " + user.Password)
 	}
 
 	// Generate JWT token
