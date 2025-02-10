@@ -3,7 +3,6 @@ package repositories
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	userModels "github.com/morshedulmunna/pxomart-api/app/models"
 	config "github.com/morshedulmunna/pxomart-api/configs"
@@ -26,7 +25,6 @@ func NewAuthRepository() AuthRepository {
 
 // GetUserByEmail fetches user by email from PostgreSQL
 func (repo *AuthRepositoryImpl) GetUserByEmail(email string) (*userModels.User, error) {
-	fmt.Println(email)
 	var user userModels.User
 
 	// Correct query to scan the proper columns into the user struct.
