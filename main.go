@@ -13,12 +13,8 @@ import (
 	"github.com/morshedulmunna/pxomart-api/routes"
 )
 
-var logger *log.Logger
-
 func init() {
-	// Set up logging using the utility function
-	logger = gogenz.SetupLogging()
-
+	gogenz.SetupLogging()
 }
 
 func main() {
