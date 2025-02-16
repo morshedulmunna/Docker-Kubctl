@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/morshedulmunna/pxomart-api/cmd/models"
 	"github.com/morshedulmunna/pxomart-api/cmd/services"
 )
 
@@ -25,7 +26,7 @@ func NewUserController(service services.UserService) UserController {
 }
 
 func (u *userController) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user services.User
+	var user *models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
@@ -56,7 +57,7 @@ func (u *userController) GetUser(w http.ResponseWriter, r *http.Request) {
 
 func (u *userController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	var user services.User
+	var user *models.User
 
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
