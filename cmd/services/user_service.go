@@ -1,6 +1,8 @@
 package services
 
-import "errors"
+import (
+	"github.com/morshedulmunna/pxomart-api/internal/store"
+)
 
 // User represents a simple user model (replace with your actual model).
 type User struct {
@@ -17,41 +19,31 @@ type UserService interface {
 }
 
 type userService struct {
-	users map[string]User // Simulating an in-memory DB
+	store store.UserStore
 }
 
 // NewUserService initializes and returns a UserService instance.
 func NewUserService() UserService {
-	return &userService{users: make(map[string]User)}
+	return &userService{store: store.UserStore{}}
 }
 
-func (s *userService) CreateUser(user User) (User, error) {
-	s.users[user.ID] = user
-	return user, nil
+// CreateUser implements UserService.
+func (u *userService) CreateUser(user User) (User, error) {
+	// u.store.Create()
+	panic("unimplemented")
 }
 
-func (s *userService) GetUser(id string) (User, error) {
-	user, exists := s.users[id]
-	if !exists {
-		return User{}, errors.New("user not found")
-	}
-	return user, nil
+// DeleteUser implements UserService.
+func (u *userService) DeleteUser(id string) error {
+	panic("unimplemented")
 }
 
-func (s *userService) UpdateUser(id string, user User) (User, error) {
-	_, exists := s.users[id]
-	if !exists {
-		return User{}, errors.New("user not found")
-	}
-	s.users[id] = user
-	return user, nil
+// GetUser implements UserService.
+func (u *userService) GetUser(id string) (User, error) {
+	panic("unimplemented")
 }
 
-func (s *userService) DeleteUser(id string) error {
-	_, exists := s.users[id]
-	if !exists {
-		return errors.New("user not found")
-	}
-	delete(s.users, id)
-	return nil
+// UpdateUser implements UserService.
+func (u *userService) UpdateUser(id string, user User) (User, error) {
+	panic("unimplemented")
 }
