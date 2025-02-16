@@ -22,23 +22,14 @@ type userService struct {
 	store store.UserStore
 }
 
+// CreateUser implements UserService.
+func (u *userService) CreateUser(user User) (User, error) {
+	panic("unimplemented")
+}
+
 // NewUserService initializes and returns a UserService instance.
 func NewUserService() UserService {
 	return &userService{store: store.UserStore{}}
-}
-
-// CreateUser implements UserService.
-func (u *userService) CreateUser(user User) (User, error) {
-	createdUser, err := u.store.Create(store.User{Name: user.Name})
-	if err != nil {
-		return User{}, err
-	}
-
-	// Map from store.User to services.User
-	return User{
-		ID:   createdUser.ID,
-		Name: createdUser.Name,
-	}, nil
 }
 
 // DeleteUser implements UserService.
