@@ -29,8 +29,16 @@ func NewUserService() UserService {
 
 // CreateUser implements UserService.
 func (u *userService) CreateUser(user User) (User, error) {
-	// u.store.Create()
-	panic("unimplemented")
+	createdUser, err := u.store.Create(store.User{Name: user.Name})
+	if err != nil {
+		return User{}, err
+	}
+
+	// Map from store.User to services.User
+	return User{
+		ID:   createdUser.ID,
+		Name: createdUser.Name,
+	}, nil
 }
 
 // DeleteUser implements UserService.
