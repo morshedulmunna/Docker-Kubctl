@@ -28,6 +28,7 @@ func (app *application) Mount() http.Handler {
 		r.Mount("/health", routes.HealthRoutes())
 		// user route Mounting
 		r.Mount("/users", routes.UserRoutes())
+
 	})
 
 	// Handle Not Found

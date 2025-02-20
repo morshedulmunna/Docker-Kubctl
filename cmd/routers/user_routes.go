@@ -9,7 +9,6 @@ import (
 // UserRoutes sets up user-related routes
 func UserRoutes() *chi.Mux {
 	r := chi.NewRouter()
-
 	userService := services.NewUserService()
 	userController := controllers.NewUserController(userService)
 
