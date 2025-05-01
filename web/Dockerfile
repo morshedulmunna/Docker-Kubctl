@@ -1,5 +1,3 @@
-
-
 # Stage 1: Build Stage
 FROM node:lts-alpine AS builder
 
@@ -7,10 +5,12 @@ FROM node:lts-alpine AS builder
 WORKDIR /app
 
 # Copy only package files for dependency installation
-COPY package.json ./
+COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with legacy peer deps and strict peer deps disabled
+RUN npm config set legacy-peer-deps true && \
+    npm config set strict-peer-deps false && \
+    npm install --no-audit --no-fund
 
 # Copy the rest of the application code
 COPY . .
