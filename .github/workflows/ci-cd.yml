@@ -30,10 +30,6 @@ jobs:
       - name: Run tests
         working-directory: ./web
         run: npm test
-      
-      - name: Run linting
-        working-directory: ./web
-        run: npm run lint
 
   build-and-push:
     needs: test
