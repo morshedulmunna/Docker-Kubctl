@@ -26,7 +26,7 @@ WORKDIR /app
 
 # Install production-only dependencies
 COPY package.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy the build files from the builder stage
 COPY --from=builder /app/.next ./.next
