@@ -9,6 +9,11 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Request information
+  REQUEST_TIMEOUT: 30000
+  REQUEST_RETRIES: 3
+  REQUEST_RATE_LIMIT: 100
+  API_BASE_URL: ${{ secrets.API_BASE_URL }}
 
 jobs:
   test:
