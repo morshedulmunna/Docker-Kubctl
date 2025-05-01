@@ -9,11 +9,19 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # Request information
-  REQUEST_TIMEOUT: 30000
-  REQUEST_RETRIES: 3
-  REQUEST_RATE_LIMIT: 100
-  API_BASE_URL: ${{ secrets.API_BASE_URL }}
+  # VPS deployment info
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+  VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+  VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+  # Domain info
+  DOMAIN: ${{ secrets.DOMAIN }}
+  EMAIL: ${{ secrets.EMAIL }}
+
+# Set permissions for GITHUB_TOKEN
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   test:
@@ -92,14 +100,75 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-      
-      - name: Configure kubectl
+      - name: Install SSHpass
         run: |
-          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
-          export KUBECONFIG=kubeconfig.yaml
+          sudo apt-get update
+          sudo apt-get install -y sshpass
       
-      - name: Deploy to Kubernetes
+      - name: Deploy to VPS
         run: |
-          kubectl set image deployment/web web=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} 
+          # Create deployment script
+          cat > deploy.sh << 'EOF'
+          #!/bin/bash
+          
+          # Install required packages
+          apt-get update
+          apt-get install -y nginx certbot python3-certbot-nginx
+          
+          # Login to GitHub Container Registry
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Pull the latest image
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          
+          # Stop and remove existing container
+          docker stop web || true
+          docker rm web || true
+          
+          # Run new container
+          docker run -d \
+            --name web \
+            -p 3000:3000 \
+            --restart unless-stopped \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          
+          # Configure Nginx
+          cat > /etc/nginx/sites-available/${{ env.DOMAIN }} << 'NGINX'
+          server {
+              listen 80;
+              server_name ${{ env.DOMAIN }};
+              
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade \$http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host \$host;
+                  proxy_cache_bypass \$http_upgrade;
+              }
+          }
+          NGINX
+          
+          # Enable the site
+          ln -sf /etc/nginx/sites-available/${{ env.DOMAIN }} /etc/nginx/sites-enabled/
+          rm -f /etc/nginx/sites-enabled/default
+          
+          # Test Nginx configuration
+          nginx -t
+          
+          # Restart Nginx
+          systemctl restart nginx
+          
+          # Obtain SSL certificate
+          certbot --nginx -d ${{ env.DOMAIN }} --non-interactive --agree-tos --email ${{ env.EMAIL }} --redirect
+          
+          # Set up automatic renewal
+          echo "0 0 * * * root certbot renew --quiet" > /etc/cron.d/certbot-renew
+          EOF
+          
+          # Make the script executable
+          chmod +x deploy.sh
+          
+          # Copy and execute the script on the VPS
+          sshpass -p "${{ env.VPS_PASSWORD }}" scp -o StrictHostKeyChecking=no -P ${{ env.VPS_PORT }} deploy.sh ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/
+          sshpass -p "${{ env.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ env.VPS_PORT }} ${{ env.VPS_USER }}@${{ env.VPS_HOST }} 'bash /tmp/deploy.sh' 
