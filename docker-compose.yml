@@ -68,12 +68,6 @@ services:
     volumes:
       - /app/node_modules
       - ./client:/app
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
 
   worker:
     build:
