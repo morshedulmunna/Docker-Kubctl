@@ -46,6 +46,8 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
     volumes:
       - /app/node_modules
       - ./client:/app
@@ -59,6 +61,17 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+  nginx:
+    restart: always
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3050:80"
+    depends_on:
+      - client
+      - api
+
 volumes:
   postgres_data:
   redis_data:
