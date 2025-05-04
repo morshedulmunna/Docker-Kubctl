@@ -9,8 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     services:
+      # Postgres
       postgres:
         image: postgres:latest
         env:
@@ -24,7 +26,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+      # Redis
       redis:
         image: redis:latest
         ports:
@@ -38,25 +40,29 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      # Setup Node.js 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       
-      - name: Test Client
+      # Test Client (React)
+      - name: Test Client (React)
         working-directory: ./client
         run: |
           npm ci
           npm run build
       
-      - name: Test Server
+      # Test Server (API)
+      - name: Test Server (API)
         working-directory: ./server
         run: |
           npm ci
           npm test || true
       
-      - name: Test Worker
+      # Test Worker (Redis)
+      - name: Test Worker (Redis)
         working-directory: ./worker
         run: |
           npm ci
@@ -69,38 +75,42 @@ jobs:
     
     steps:
       - uses: actions/checkout@v3
-      
+      # Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      
+      # Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      - name: Build and push Client
+      # Build and push Client (React)
+      - name: Build and push Client (React)
         uses: docker/build-push-action@v4
         with:
           context: ./client
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/multi-client:latest
       
-      - name: Build and push Server
+      # Build and push Server (API)
+      - name: Build and push Server (API)
         uses: docker/build-push-action@v4
         with:
           context: ./server
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/multi-server:latest
       
-      - name: Build and push Worker
+      # Build and push Worker (Redis)
+      - name: Build and push Worker (Redis)
         uses: docker/build-push-action@v4
         with:
           context: ./worker
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/multi-worker:latest
       
-      - name: Build and push Nginx
+      # Build and push Nginx (Proxy)
+      - name: Build and push Nginx (Proxy)
         uses: docker/build-push-action@v4
         with:
           context: ./nginx
