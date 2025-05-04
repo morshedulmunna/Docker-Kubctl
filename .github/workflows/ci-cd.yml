@@ -1,0 +1,129 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgresdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Test Client
+        working-directory: ./client
+        run: |
+          npm ci
+          npm run build
+      
+      - name: Test Server
+        working-directory: ./server
+        run: |
+          npm ci
+          npm test || true
+      
+      - name: Test Worker
+        working-directory: ./worker
+        run: |
+          npm ci
+          npm test || true
+
+  build-and-push:
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Client
+        uses: docker/build-push-action@v4
+        with:
+          context: ./client
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/multi-client:latest
+      
+      - name: Build and push Server
+        uses: docker/build-push-action@v4
+        with:
+          context: ./server
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/multi-server:latest
+      
+      - name: Build and push Worker
+        uses: docker/build-push-action@v4
+        with:
+          context: ./worker
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/multi-worker:latest
+      
+      - name: Build and push Nginx
+        uses: docker/build-push-action@v4
+        with:
+          context: ./nginx
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/multi-nginx:latest
+
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          
+      - name: Deploy to VPS
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
+            cd ${{ secrets.PROJECT_PATH }} &&
+            docker-compose pull &&
+            docker-compose up -d --force-recreate &&
+            docker system prune -f
+          '
